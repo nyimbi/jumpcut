@@ -31,8 +31,11 @@ struct JCEngine: Codable {
 // These names are from our original Objective-C implementation.
 // swiftlint:disable identifier_name
 struct JCListItem: Codable {
+    let Bold: Bool?
+    let Color: String?
     let Contents: String
     let Favorite: Bool?
+    let Italic: Bool?
     let Position: Int
     let `Type`: String
 }
@@ -41,6 +44,39 @@ struct JCListItem: Codable {
 struct PositionedClipping {
     let position: Int
     let clipping: Clipping
+}
+
+enum ClippingLabelColor: String, CaseIterable {
+    case red
+    case orange
+    case yellow
+    case green
+    case blue
+    case purple
+    case gray
+
+    var title: String {
+        return rawValue.capitalized
+    }
+
+    var menuColor: NSColor {
+        switch self {
+        case .red:
+            return NSColor(calibratedRed: 0.82, green: 0.18, blue: 0.18, alpha: 1.0)
+        case .orange:
+            return NSColor(calibratedRed: 0.85, green: 0.38, blue: 0.06, alpha: 1.0)
+        case .yellow:
+            return NSColor(calibratedRed: 0.62, green: 0.48, blue: 0.08, alpha: 1.0)
+        case .green:
+            return NSColor(calibratedRed: 0.12, green: 0.52, blue: 0.22, alpha: 1.0)
+        case .blue:
+            return NSColor(calibratedRed: 0.12, green: 0.34, blue: 0.78, alpha: 1.0)
+        case .purple:
+            return NSColor(calibratedRed: 0.44, green: 0.24, blue: 0.68, alpha: 1.0)
+        case .gray:
+            return NSColor(calibratedWhite: 0.38, alpha: 1.0)
+        }
+    }
 }
 
 public class ClippingStack: NSObject {
@@ -146,6 +182,18 @@ public class ClippingStack: NSObject {
         store.toggleFavorite(position: position)
     }
 
+    func toggleBold(position: Int) {
+        store.toggleBold(position: position)
+    }
+
+    func toggleItalic(position: Int) {
+        store.toggleItalic(position: position)
+    }
+
+    func setLabelColor(position: Int, color: ClippingLabelColor?) {
+        store.setLabelColor(position: position, color: color)
+    }
+
     func moveItemToTop(position: Int) {
         store.moveItemToTop(position: position)
     }
@@ -169,11 +217,23 @@ public class Clipping: NSObject {
     public var shortenedText: String
     public var length: Int
     public var isFavorite: Bool
+    public var isBold: Bool
+    public var isItalic: Bool
+    var labelColor: ClippingLabelColor?
     private let defaultLength = 40
 
-    init(string: String, isFavorite: Bool = false) {
+    init(
+        string: String,
+        isFavorite: Bool = false,
+        isBold: Bool = false,
+        isItalic: Bool = false,
+        labelColor: ClippingLabelColor? = nil
+    ) {
         fullText = string
         self.isFavorite = isFavorite
+        self.isBold = isBold
+        self.isItalic = isItalic
+        self.labelColor = labelColor
         length = defaultLength
         shortenedText = fullText.trimmingCharacters(in: .whitespacesAndNewlines)
         shortenedText = shortenedText.components(separatedBy: .newlines)[0]
@@ -274,7 +334,13 @@ private class ClippingStore: NSObject {
                         in: .whitespacesAndNewlines
                     ).isEmpty
                     if !clipIsEmpty || allowWhitespace {
-                        self.add(item: clipDict.Contents, isFavorite: clipDict.Favorite ?? false)
+                        self.add(
+                            item: clipDict.Contents,
+                            isFavorite: clipDict.Favorite ?? false,
+                            isBold: clipDict.Bold ?? false,
+                            isItalic: clipDict.Italic ?? false,
+                            labelColor: ClippingLabelColor(rawValue: clipDict.Color ?? "")
+                        )
                     }
                 }
             } catch {
@@ -295,8 +361,11 @@ private class ClippingStore: NSObject {
         var counter = 0
         for clip in clippings {
             items.append(JCListItem(
+                Bold: clip.isBold ? true : nil,
+                Color: clip.labelColor?.rawValue,
                 Contents: clip.fullText,
                 Favorite: clip.isFavorite ? true : nil,
+                Italic: clip.isItalic ? true : nil,
                 Position: counter,
                 Type: "NSStringPboardType"
             ))
@@ -318,8 +387,23 @@ private class ClippingStore: NSObject {
         }
     }
 
-    func add(item: String, isFavorite: Bool = false) {
-        clippings.insert(Clipping(string: item, isFavorite: isFavorite), at: 0)
+    func add(
+        item: String,
+        isFavorite: Bool = false,
+        isBold: Bool = false,
+        isItalic: Bool = false,
+        labelColor: ClippingLabelColor? = nil
+    ) {
+        clippings.insert(
+            Clipping(
+                string: item,
+                isFavorite: isFavorite,
+                isBold: isBold,
+                isItalic: isItalic,
+                labelColor: labelColor
+            ),
+            at: 0
+        )
         if clippings.count > maxLength {
             clippings.removeLast()
         }
@@ -374,6 +458,30 @@ private class ClippingStore: NSObject {
             return
         }
         clipping.isFavorite = !clipping.isFavorite
+        writeClippings()
+    }
+
+    func toggleBold(position: Int) {
+        guard let clipping = itemAt(position: position) else {
+            return
+        }
+        clipping.isBold = !clipping.isBold
+        writeClippings()
+    }
+
+    func toggleItalic(position: Int) {
+        guard let clipping = itemAt(position: position) else {
+            return
+        }
+        clipping.isItalic = !clipping.isItalic
+        writeClippings()
+    }
+
+    func setLabelColor(position: Int, color: ClippingLabelColor?) {
+        guard let clipping = itemAt(position: position) else {
+            return
+        }
+        clipping.labelColor = color
         writeClippings()
     }
 

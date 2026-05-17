@@ -17,6 +17,9 @@ Preferences to use them.
 * Individual clippings can be marked as favourites from the alternate clipping
   menu. Favourites are marked with `[F]` and are available from a dedicated
   Favourites submenu.
+* Clippings can be visually labelled from the alternate clipping menu with
+  bold, italic, and a small color palette. These labels are visible in the main
+  clipping menu, the alternate menu, and the Favourites submenu.
 * Clippings can be saved to disk: save a selected clipping to a file, save all
   clippings into one text file, or save all clippings as separate text files.
 

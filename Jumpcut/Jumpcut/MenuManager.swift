@@ -43,6 +43,49 @@ public class MenuManager {
         return clipping.shortenedText
     }
 
+    private func menuFont(for clipping: Clipping) -> NSFont {
+        var font = NSFont.menuFont(ofSize: NSFont.systemFontSize)
+        let manager = NSFontManager.shared
+        if clipping.isBold {
+            font = manager.convert(font, toHaveTrait: .boldFontMask)
+        }
+        if clipping.isItalic {
+            font = manager.convert(font, toHaveTrait: .italicFontMask)
+        }
+        return font
+    }
+
+    private func applyMenuStyle(
+        to item: NSMenuItem,
+        for clipping: Clipping,
+        extendedFeaturesEnabled: Bool
+    ) {
+        let title = menuTitle(for: clipping, extendedFeaturesEnabled: extendedFeaturesEnabled)
+        item.title = title
+        guard extendedFeaturesEnabled,
+              (clipping.isBold || clipping.isItalic || clipping.labelColor != nil) else {
+            return
+        }
+        var attributes: [NSAttributedString.Key: Any] = [
+            .font: menuFont(for: clipping)
+        ]
+        if let color = clipping.labelColor {
+            attributes[.foregroundColor] = color.menuColor
+        }
+        item.attributedTitle = NSAttributedString(string: title, attributes: attributes)
+    }
+
+    private func styleMenuItem(
+        title: String,
+        action: Selector?,
+        position: Int
+    ) -> NSMenuItem {
+        let item = NSMenuItem(title: title, action: action, keyEquivalent: "")
+        item.target = delegate!.interactions!
+        item.representedObject = position
+        return item
+    }
+
     private func standardItem(
         forClipping clipping: Clipping,
         position: Int,
@@ -55,6 +98,7 @@ public class MenuManager {
         )
         standardItem.representedObject = position
         standardItem.target = delegate!.interactions!
+        applyMenuStyle(to: standardItem, for: clipping, extendedFeaturesEnabled: extendedFeaturesEnabled)
         return standardItem
     }
 
@@ -70,6 +114,7 @@ public class MenuManager {
             keyEquivalent: ""
         )
         altItem.representedObject = position
+        applyMenuStyle(to: altItem, for: clipping, extendedFeaturesEnabled: extendedFeaturesEnabled)
         let submenu = NSMenu()
         altItem.submenu = submenu
         let placeItem = NSMenuItem(
@@ -90,18 +135,33 @@ public class MenuManager {
         )
         var items = [placeItem, pasteItem]
         if extendedFeaturesEnabled {
-            let saveItem = NSMenuItem(
+            let saveItem = styleMenuItem(
                 title: "Save item to file...",
                 action: #selector(self.delegate!.interactions!.menuSaveItemToFile(sender:)),
-                keyEquivalent: ""
+                position: position
             )
-            let favoriteItem = NSMenuItem(
+            let favoriteItem = styleMenuItem(
                 title: clipping.isFavorite ? "Remove from Favourites" : "Add to Favourites",
                 action: #selector(self.delegate!.interactions!.menuToggleFavorite(sender:)),
-                keyEquivalent: ""
+                position: position
             )
+            let boldItem = styleMenuItem(
+                title: clipping.isBold ? "Remove Bold" : "Make Bold",
+                action: #selector(self.delegate!.interactions!.menuToggleBold(sender:)),
+                position: position
+            )
+            boldItem.state = clipping.isBold ? .on : .off
+            let italicItem = styleMenuItem(
+                title: clipping.isItalic ? "Remove Italic" : "Make Italic",
+                action: #selector(self.delegate!.interactions!.menuToggleItalic(sender:)),
+                position: position
+            )
+            italicItem.state = clipping.isItalic ? .on : .off
             items.append(saveItem)
             items.append(favoriteItem)
+            items.append(boldItem)
+            items.append(italicItem)
+            items.append(colorMenuItem(for: clipping, position: position))
         }
         items.append(deleteItem)
         for item in items {
@@ -110,6 +170,39 @@ public class MenuManager {
             submenu.addItem(item)
         }
         return altItem
+    }
+
+    private func colorMenuItem(for clipping: Clipping, position: Int) -> NSMenuItem {
+        let colorItem = NSMenuItem(title: "Color", action: nil, keyEquivalent: "")
+        colorItem.representedObject = position
+        let colorMenu = NSMenu()
+        colorItem.submenu = colorMenu
+        let noneItem = NSMenuItem(
+            title: "None",
+            action: #selector(self.delegate!.interactions!.menuSetLabelColor(sender:)),
+            keyEquivalent: ""
+        )
+        noneItem.target = delegate!.interactions!
+        noneItem.representedObject = "none"
+        noneItem.state = clipping.labelColor == nil ? .on : .off
+        colorMenu.addItem(noneItem)
+        colorMenu.addItem(NSMenuItem.separator())
+        for color in ClippingLabelColor.allCases {
+            let item = NSMenuItem(
+                title: color.title,
+                action: #selector(self.delegate!.interactions!.menuSetLabelColor(sender:)),
+                keyEquivalent: ""
+            )
+            item.target = delegate!.interactions!
+            item.representedObject = color.rawValue
+            item.state = clipping.labelColor == color ? .on : .off
+            item.attributedTitle = NSAttributedString(
+                string: color.title,
+                attributes: [.foregroundColor: color.menuColor]
+            )
+            colorMenu.addItem(item)
+        }
+        return colorItem
     }
 
     private func addFavoritesMenu(menu: NSMenu, stack: ClippingStack) {
@@ -130,6 +223,7 @@ public class MenuManager {
                 )
                 item.target = delegate!.interactions!
                 item.representedObject = favorite.position
+                applyMenuStyle(to: item, for: favorite.clipping, extendedFeaturesEnabled: true)
                 favoritesMenu.addItem(item)
             }
         }

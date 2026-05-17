@@ -9,6 +9,7 @@ installed app update, and the GitHub release artifact.
 - Added saving/export actions for clippings.
 - Increased the optional clipping history capacity from 99 to 500.
 - Added favourites for clippings.
+- Added bold, italic, and color labels for clippings.
 - Added a Hotkey preferences checkbox so the extra fork-only features are
   opt-in.
 - Updated About Jumpcut and the README with usage notes.
@@ -38,7 +39,7 @@ When the checkbox is off:
 
 - The visible menus stay close to upstream Jumpcut.
 - Save/export actions are not shown.
-- Favourites actions and `[F]` markers are not shown.
+- Favourites, bold, italic, color, and `[F]` markers are not shown.
 - The effective clipping history limit is capped at 99.
 
 When the checkbox is on:
@@ -46,6 +47,10 @@ When the checkbox is on:
 - History can retain up to 500 clippings.
 - Individual clippings can be added to or removed from Favourites.
 - Favourite clippings are marked with `[F]`.
+- Individual clippings can be made bold, made italic, or assigned a palette
+  color.
+- Bold, italic, and color labels are visible in the main clipping menu, the
+  alternate menu, and the Favourites submenu.
 - A dedicated Favourites submenu is available.
 - Selected clippings can be saved to a text file.
 - All clippings can be saved to one text file.
@@ -77,6 +82,17 @@ To favourite a clipping after enabling extended mode:
 The alternate menu behavior depends on existing Jumpcut preferences, for
 example right-click or Shift-click on the menu bar icon.
 
+### Visual Labels
+
+To make a clipping easier to find after enabling extended mode:
+
+1. Open Jumpcut's alternate clipping menu.
+2. Hover the clipping.
+3. Choose `Make Bold`, `Make Italic`, or a color from `Color`.
+
+These labels are persisted with the clipping and move with it. They are visible
+where the clipping is listed, including the primary menu.
+
 ## Code Changes
 
 ### `Jumpcut/Jumpcut/Settings.swift`
@@ -107,14 +123,20 @@ example right-click or Shift-click on the menu bar icon.
 
 ### `Jumpcut/Jumpcut/Clippings.swift`
 
-- Added optional `Favorite` persistence to `JCListItem`.
+- Added optional `Favorite`, `Bold`, `Italic`, and `Color` persistence to
+  `JCListItem`.
 - Added `PositionedClipping`.
-- Added `Clipping.isFavorite`.
+- Added `Clipping.isFavorite`, `Clipping.isBold`, `Clipping.isItalic`, and
+  `Clipping.labelColor`.
+- Added `ClippingLabelColor` for the fixed color palette.
 - Added stack/store APIs:
   - `syncSettings()`
   - `allItems()`
   - `favoriteItems()`
   - `toggleFavorite(position:)`
+  - `toggleBold(position:)`
+  - `toggleItalic(position:)`
+  - `setLabelColor(position:color:)`
 - Changed clipping history sizing to use `Settings.effectiveRememberNum()`.
 - Preserved backwards compatibility with older saved plist files by treating
   missing `Favorite` values as `false`.
@@ -125,8 +147,10 @@ example right-click or Shift-click on the menu bar icon.
 ### `Jumpcut/Jumpcut/MenuManager.swift`
 
 - Added stable clipping positions through `NSMenuItem.representedObject`.
+- Added styled menu titles when extended mode is enabled.
 - Added `[F]` title markers when extended mode is enabled.
 - Added Favourites submenu when extended mode is enabled.
+- Added bold, italic, and color controls to the alternate clipping menu.
 - Added save/export menu items when extended mode is enabled.
 - Kept the standard Clear All, About, Preferences, and Quit actions available in
   both modes.
@@ -135,6 +159,9 @@ example right-click or Shift-click on the menu bar icon.
 
 - Added handlers for:
   - `menuToggleFavorite(sender:)`
+  - `menuToggleBold(sender:)`
+  - `menuToggleItalic(sender:)`
+  - `menuSetLabelColor(sender:)`
   - `menuSaveItemToFile(sender:)`
   - `saveAllToFile(sender:)`
   - `saveAllAsFiles(sender:)`
@@ -158,6 +185,7 @@ example right-click or Shift-click on the menu bar icon.
   - 99 clipping cap when extended mode is disabled.
   - trimming on remember-limit changes.
   - favourite toggling and favourites moving with their clipping.
+  - bold, italic, and color labels moving with their clipping.
 - Tests preserve and restore relevant user defaults.
 
 ### `Jumpcut/Jumpcut/Credits.html`
@@ -169,6 +197,7 @@ example right-click or Shift-click on the menu bar icon.
 
 - Documented the fork-only capabilities.
 - Documented that they are opt-in through the Hotkey preferences pane.
+- Documented bold, italic, and color labels.
 - Added the requested note that the changes were made for personal use, sent as
   a PR, are probably not useful to others, and bend Jumpcut's minimalism.
 
@@ -230,28 +259,28 @@ Passed after applying the local ad-hoc signature.
 
 ## Release Artifact
 
-Release tag:
+Latest release tag:
 
 ```text
-v0.84-nyimbi.1
+v0.84-nyimbi.2
 ```
 
 Release asset:
 
 ```text
-Jumpcut-0.84-nyimbi.1-macOS.zip
+Jumpcut-0.84-nyimbi.2-macOS.zip
 ```
 
 Local release asset path:
 
 ```text
-/private/tmp/jumpcut-release-v0.84-nyimbi.1/Jumpcut-0.84-nyimbi.1-macOS.zip
+/private/tmp/jumpcut-release-v0.84-nyimbi.2/Jumpcut-0.84-nyimbi.2-macOS.zip
 ```
 
 Asset SHA-256:
 
 ```text
-9b7d9e1df76ec24e4217aaedd6f58f3cc8a51d32508f746b17e91f25ab52e578
+a73e2da5f316c5733e79cfc2ec2498fa0ee5bae9028f11b48c11067c1a8abb4d
 ```
 
 ## Known Caveats
@@ -269,7 +298,7 @@ Asset SHA-256:
 
 - Keep new fork-only clipping actions behind `Settings.extendedFeaturesEnabled()`
   unless the behavior is intentionally upstream-minimal.
-- Preserve the optional `Favorite` field as optional so older clipping save
-  files continue to decode.
+- Preserve the optional `Favorite`, `Bold`, `Italic`, and `Color` fields as
+  optional so older clipping save files continue to decode.
 - If a signed public distribution is needed, rebuild with a valid Apple
   Developer identity and notarize before uploading a replacement release asset.

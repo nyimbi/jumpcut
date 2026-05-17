@@ -97,4 +97,30 @@ class JumpcutTests: XCTestCase {
         XCTAssertTrue(stack.itemAt(position: 0)?.isFavorite ?? false)
     }
 
+    func testClippingStylesCanBeToggledAndMoveWithClipping() throws {
+        let stack = ClippingStack()
+        stack.add(item: "plain")
+        stack.add(item: "styled")
+
+        stack.toggleBold(position: 1)
+        stack.toggleItalic(position: 1)
+        stack.setLabelColor(position: 1, color: .green)
+
+        XCTAssertFalse(stack.itemAt(position: 0)?.isBold ?? true)
+        XCTAssertTrue(stack.itemAt(position: 1)?.isBold ?? false)
+        XCTAssertTrue(stack.itemAt(position: 1)?.isItalic ?? false)
+        XCTAssertEqual(stack.itemAt(position: 1)?.labelColor, .green)
+
+        stack.moveItemToTop(position: 1)
+
+        XCTAssertEqual(stack.itemAt(position: 0)?.fullText, "plain")
+        XCTAssertTrue(stack.itemAt(position: 0)?.isBold ?? false)
+        XCTAssertTrue(stack.itemAt(position: 0)?.isItalic ?? false)
+        XCTAssertEqual(stack.itemAt(position: 0)?.labelColor, .green)
+
+        stack.setLabelColor(position: 0, color: nil)
+
+        XCTAssertNil(stack.itemAt(position: 0)?.labelColor)
+    }
+
 }

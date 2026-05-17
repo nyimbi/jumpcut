@@ -262,6 +262,35 @@ public class Interactions: NSObject {
         menu.rebuild(stack: stack)
     }
 
+    @objc public func menuToggleBold(sender: NSMenuItem!) {
+        guard Settings.extendedFeaturesEnabled() else {
+            return
+        }
+        let idx = extractIndex(menuItem: sender)
+        stack.toggleBold(position: idx)
+        menu.rebuild(stack: stack)
+    }
+
+    @objc public func menuToggleItalic(sender: NSMenuItem!) {
+        guard Settings.extendedFeaturesEnabled() else {
+            return
+        }
+        let idx = extractIndex(menuItem: sender)
+        stack.toggleItalic(position: idx)
+        menu.rebuild(stack: stack)
+    }
+
+    @objc public func menuSetLabelColor(sender: NSMenuItem!) {
+        guard Settings.extendedFeaturesEnabled() else {
+            return
+        }
+        let idx = extractIndex(menuItem: sender)
+        let rawValue = sender.representedObject as? String
+        let color = rawValue == "none" ? nil : ClippingLabelColor(rawValue: rawValue ?? "")
+        stack.setLabelColor(position: idx, color: color)
+        menu.rebuild(stack: stack)
+    }
+
     @objc public func menuSaveItemToFile(sender: NSMenuItem!) {
         guard Settings.extendedFeaturesEnabled() else {
             return
