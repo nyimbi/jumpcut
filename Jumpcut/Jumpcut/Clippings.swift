@@ -32,10 +32,16 @@ struct JCEngine: Codable {
 // swiftlint:disable identifier_name
 struct JCListItem: Codable {
     let Contents: String
+    let Favorite: Bool?
     let Position: Int
     let `Type`: String
 }
 // swiftlint:enable identifier_name
+
+struct PositionedClipping {
+    let position: Int
+    let clipping: Clipping
+}
 
 public class ClippingStack: NSObject {
     private var store: ClippingStore
@@ -51,9 +57,7 @@ public class ClippingStack: NSObject {
     override init() {
         self.store = ClippingStore()
         super.init()
-        self.store.maxLength = UserDefaults.standard.value(
-            forKey: SettingsPath.rememberNum.rawValue
-        ) as? Int ?? 99
+        syncSettings()
     }
 
     func checkWriteAccess() -> Bool {
@@ -71,6 +75,10 @@ public class ClippingStack: NSObject {
 
     func clear() {
         store.clear()
+    }
+
+    func syncSettings() {
+        store.maxLength = Settings.effectiveRememberNum()
     }
 
     func delete() {
@@ -126,6 +134,18 @@ public class ClippingStack: NSObject {
         return store.itemAt(position: position)
     }
 
+    func allItems() -> [Clipping] {
+        return Array(store.firstItems(n: store.count))
+    }
+
+    func favoriteItems() -> [PositionedClipping] {
+        return store.favoriteItems()
+    }
+
+    func toggleFavorite(position: Int) {
+        store.toggleFavorite(position: position)
+    }
+
     func moveItemToTop(position: Int) {
         store.moveItemToTop(position: position)
     }
@@ -148,10 +168,12 @@ public class Clipping: NSObject {
     public let fullText: String
     public var shortenedText: String
     public var length: Int
+    public var isFavorite: Bool
     private let defaultLength = 40
 
-    init(string: String) {
+    init(string: String, isFavorite: Bool = false) {
         fullText = string
+        self.isFavorite = isFavorite
         length = defaultLength
         shortenedText = fullText.trimmingCharacters(in: .whitespacesAndNewlines)
         shortenedText = shortenedText.components(separatedBy: .newlines)[0]
@@ -173,8 +195,12 @@ private class ClippingStore: NSObject {
         get { return _maxLength }
         set {
             let newValueWithMin = newValue < 10 ? 10 : newValue
+            let previousCount = clippings.count
             clippings = Array(self.firstItems(n: newValueWithMin))
             _maxLength = newValueWithMin
+            if clippings.count != previousCount {
+                writeClippings()
+            }
         }
     }
 
@@ -202,6 +228,7 @@ private class ClippingStore: NSObject {
     override init() {
         // TK: We will eventually be switching this out to use SQLite3, but for
         // now we'll use a hardcoded path to a property list.
+        _maxLength = Settings.effectiveRememberNum()
         skipSave = UserDefaults.standard.value(forKey: SettingsPath.skipSave.rawValue) as? Bool ?? false
         if let jumpcutSupportDir = ClippingStore.getSupportDir() {
             plistUrl = jumpcutSupportDir.appendingPathComponent("JCEngine.save")
@@ -247,7 +274,7 @@ private class ClippingStore: NSObject {
                         in: .whitespacesAndNewlines
                     ).isEmpty
                     if !clipIsEmpty || allowWhitespace {
-                        self.add(item: clipDict.Contents)
+                        self.add(item: clipDict.Contents, isFavorite: clipDict.Favorite ?? false)
                     }
                 }
             } catch {
@@ -267,13 +294,18 @@ private class ClippingStore: NSObject {
         var items: [JCListItem] = []
         var counter = 0
         for clip in clippings {
-            items.append(JCListItem(Contents: clip.fullText, Position: counter, Type: "NSStringPboardType"))
+            items.append(JCListItem(
+                Contents: clip.fullText,
+                Favorite: clip.isFavorite ? true : nil,
+                Position: counter,
+                Type: "NSStringPboardType"
+            ))
             counter += 1
         }
         let data = JCEngine(
             displayNum: UserDefaults.standard.value(forKey: SettingsPath.displayNum.rawValue) as? Int ?? 10,
             jcList: items,
-            rememberNum: UserDefaults.standard.value(forKey: SettingsPath.displayNum.rawValue) as? Int ?? 99,
+            rememberNum: Settings.effectiveRememberNum(),
             version: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown"
         )
         let encoder = PropertyListEncoder()
@@ -286,8 +318,8 @@ private class ClippingStore: NSObject {
         }
     }
 
-    func add(item: String) {
-        clippings.insert(Clipping(string: item), at: 0)
+    func add(item: String, isFavorite: Bool = false) {
+        clippings.insert(Clipping(string: item, isFavorite: isFavorite), at: 0)
         if clippings.count > maxLength {
             clippings.removeLast()
         }
@@ -305,7 +337,7 @@ private class ClippingStore: NSObject {
         // Don't move from an invalid position; also, position 0
         // is a null operation, because it's already at the top.
         guard !clippings.isEmpty,
-            position <= clippings.count,
+            position < clippings.count,
             position > 0
         else {
             return
@@ -316,18 +348,32 @@ private class ClippingStore: NSObject {
     }
 
     func itemAt(position: Int) -> Clipping? {
-        if clippings.isEmpty || position > clippings.count {
+        if clippings.isEmpty || position >= clippings.count {
             return nil
         }
         return clippings[position]
     }
 
     func removeItem(position: Int) {
-        if clippings.isEmpty || position > clippings.count {
+        if clippings.isEmpty || position >= clippings.count {
             return
         }
         clippings.remove(at: position)
         // TK: When we have SQLite backing, we'll want to change this.
+        writeClippings()
+    }
+
+    func favoriteItems() -> [PositionedClipping] {
+        return clippings.enumerated().compactMap { index, clipping in
+            clipping.isFavorite ? PositionedClipping(position: index, clipping: clipping) : nil
+        }
+    }
+
+    func toggleFavorite(position: Int) {
+        guard let clipping = itemAt(position: position) else {
+            return
+        }
+        clipping.isFavorite = !clipping.isFavorite
         writeClippings()
     }
 
