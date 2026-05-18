@@ -28,6 +28,13 @@ opening Jumpcut's alternate clipping menu (for example, right-click or
 Shift-click the menu bar icon, depending on your preferences), hovering the
 clipping, and choosing **Add to Favourites**.
 
+For menu clicks to paste directly into another app, macOS must allow Jumpcut
+under **System Settings > Privacy & Security > Accessibility**. If selecting a
+clipping updates the pasteboard but does not paste into the editor, enable
+Jumpcut in Accessibility and restart Jumpcut. Without that permission Jumpcut
+can still copy the clipping to the pasteboard, but macOS blocks the synthetic
+Command-V event used for paste.
+
 I made these changes for my own benefit and have sent a PR. They are most
 likely not useful to others and they kind of violate the minimalism of Jumpcut,
 but hey - works for me.
