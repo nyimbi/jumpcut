@@ -246,8 +246,6 @@ public class MenuManager {
                 displaySize = 10
             }
             let clippings = stack.firstItems(n: displaySize)
-            // No need to call this N times
-            let pasteEnabled = AXIsProcessTrusted()
             for (position, clipping) in clippings.enumerated() {
                 standard.addItem(
                     standardItem(
@@ -260,7 +258,7 @@ public class MenuManager {
                     altItem(
                         forClipping: clipping,
                         position: position,
-                        pasteEnabled: pasteEnabled,
+                        pasteEnabled: true,
                         extendedFeaturesEnabled: extendedFeaturesEnabled
                     )
                 )

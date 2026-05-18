@@ -70,7 +70,7 @@ public class Interactions: NSObject {
         // Place the clipping on the top of the pasteboard, and 0.2 seconds
         // later, emit a Command-V event to paste.
         pasteboard.set(clipping.fullText)
-        guard AXIsProcessTrusted() else {
+        guard Settings.pasteAccessibilityTrusted(prompt: true) else {
             if !warnedAboutPasteAccessibility {
                 warnedAboutPasteAccessibility = true
                 delegate.showAccessibilityWarning()

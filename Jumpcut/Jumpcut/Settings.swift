@@ -241,6 +241,17 @@ public class Settings: NSObject {
         return UserDefaults.standard.object(forKey: SettingsPath.menuSelectionPastes.rawValue) as? Bool ?? true
     }
 
+    class func pasteAccessibilityTrusted(prompt: Bool = false) -> Bool {
+        let trusted = AXIsProcessTrusted()
+        guard !trusted && prompt else {
+            return trusted
+        }
+        let options = [
+            kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true
+        ] as CFDictionary
+        return AXIsProcessTrustedWithOptions(options)
+    }
+
     private func setAttributedTitle(button: NSButton, title: String) {
         let font = NSFont.systemFont(ofSize: NSFont.systemFontSize)
         let attributes = [NSAttributedString.Key.font: font]

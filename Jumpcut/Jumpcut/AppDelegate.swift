@@ -91,7 +91,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, SPUStandardU
 
         setObservers()
 
-        if !AXIsProcessTrusted() &&
+        if !Settings.pasteAccessibilityTrusted() &&
             UserDefaults.standard.value(forKey: SettingsPath.askForAccessibility.rawValue) as? Bool ?? true {
                 #if DEBUG
                 // Running in debug mode in Xcode doesn't seem to
