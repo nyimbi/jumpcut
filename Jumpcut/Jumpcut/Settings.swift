@@ -237,6 +237,10 @@ public class Settings: NSObject {
         return min(requested, maximumRememberNum())
     }
 
+    class func menuSelectionPastes() -> Bool {
+        return UserDefaults.standard.object(forKey: SettingsPath.menuSelectionPastes.rawValue) as? Bool ?? true
+    }
+
     private func setAttributedTitle(button: NSButton, title: String) {
         let font = NSFont.systemFont(ofSize: NSFont.systemFontSize)
         let attributes = [NSAttributedString.Key.font: font]

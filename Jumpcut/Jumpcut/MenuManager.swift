@@ -28,8 +28,7 @@ public class MenuManager {
     }
 
     public func shouldSelectionPaste() -> Bool {
-        var paste =
- UserDefaults.standard.value(forKey: SettingsPath.menuSelectionPastes.rawValue) as? Bool ?? false
+        var paste = Settings.menuSelectionPastes()
         if checkToggle() {
             paste = !paste
         }

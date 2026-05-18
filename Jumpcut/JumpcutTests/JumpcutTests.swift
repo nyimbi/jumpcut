@@ -12,12 +12,16 @@ class JumpcutTests: XCTestCase {
     private var previousRememberNum: Any?
     private var previousSkipSave: Any?
     private var previousExtendedFeaturesEnabled: Any?
+    private var previousMenuSelectionPastes: Any?
 
     override func setUpWithError() throws {
         previousRememberNum = UserDefaults.standard.object(forKey: SettingsPath.rememberNum.rawValue)
         previousSkipSave = UserDefaults.standard.object(forKey: SettingsPath.skipSave.rawValue)
         previousExtendedFeaturesEnabled = UserDefaults.standard.object(
             forKey: SettingsPath.extendedFeaturesEnabled.rawValue
+        )
+        previousMenuSelectionPastes = UserDefaults.standard.object(
+            forKey: SettingsPath.menuSelectionPastes.rawValue
         )
         UserDefaults.standard.set(500, forKey: SettingsPath.rememberNum.rawValue)
         UserDefaults.standard.set(true, forKey: SettingsPath.skipSave.rawValue)
@@ -28,6 +32,7 @@ class JumpcutTests: XCTestCase {
         restore(previousRememberNum, forKey: SettingsPath.rememberNum)
         restore(previousSkipSave, forKey: SettingsPath.skipSave)
         restore(previousExtendedFeaturesEnabled, forKey: SettingsPath.extendedFeaturesEnabled)
+        restore(previousMenuSelectionPastes, forKey: SettingsPath.menuSelectionPastes)
     }
 
     private func restore(_ value: Any?, forKey key: SettingsPath) {
@@ -49,6 +54,12 @@ class JumpcutTests: XCTestCase {
         XCTAssertEqual(stack.itemAt(position: 0)?.fullText, "clip 549")
         XCTAssertEqual(stack.itemAt(position: 499)?.fullText, "clip 50")
         XCTAssertNil(stack.itemAt(position: 500))
+    }
+
+    func testMenuSelectionDefaultsToPasteWhenPreferenceIsMissing() throws {
+        UserDefaults.standard.removeObject(forKey: SettingsPath.menuSelectionPastes.rawValue)
+
+        XCTAssertTrue(Settings.menuSelectionPastes())
     }
 
     func testExtendedHistoryRequiresOptIn() throws {

@@ -19,6 +19,7 @@ public class Interactions: NSObject {
     weak private var menu: MenuManager!
     weak private var bezel: Bezel!
     weak private var delegate: AppDelegate!
+    private var warnedAboutPasteAccessibility = false
 
     init(bezel: Bezel, menu: MenuManager, pasteboard: Pasteboard, stack: ClippingStack) {
         self.pasteboard = pasteboard
@@ -68,7 +69,16 @@ public class Interactions: NSObject {
     func paste(_ clipping: Clipping) {
         // Place the clipping on the top of the pasteboard, and 0.2 seconds
         // later, emit a Command-V event to paste.
-        place(clipping)
+        pasteboard.set(clipping.fullText)
+        guard AXIsProcessTrusted() else {
+            if !warnedAboutPasteAccessibility {
+                warnedAboutPasteAccessibility = true
+                delegate.showAccessibilityWarning()
+            }
+            delegate.hide()
+            return
+        }
+        delegate.hide()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
             self.pasteboard.fakeCommandV()
         }
